@@ -2,14 +2,14 @@
   "devCommand": "bun dev",
   "builds": [
     {
-      "src": "index.js",
+      "src": "src/server.js",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "index.js"
+      "dest": "src/server.js"
     }
   ]
 }

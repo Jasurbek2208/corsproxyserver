@@ -3,15 +3,19 @@
   "version": "1.0.0",
   "description": "CORS Proxy server.",
   "author": "Jasurbek Shomaqsudov",
-  "main": "index.js",
+  "main": "src/server.js",
   "private": true,
   "scripts": {
-    "build": "tsc",
-    "dev": "bun run index.js",
-    "start": "bun run dist/index.js"
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "mocha",
+    "lint": "eslint .",
+    "build": "babel src -d dist",
+    "prestart": "npm run build"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=20",
+    "npm": ">=9"
   },
   "prettier": {
     "singleQuote": true,
@@ -25,7 +29,9 @@
     "endOfLine": "auto",
     "bracketSameLine": true
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  },
   "peerDependencies": {},
   "dependencies": {
     "@vercel/node": "^3.1.5",
