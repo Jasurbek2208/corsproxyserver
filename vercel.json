@@ -1,5 +1,5 @@
 {
-  "devCommand": "bun dev",
+  "devCommand": "npm run dev",
   "builds": [
     {
       "src": "src/server.js",
