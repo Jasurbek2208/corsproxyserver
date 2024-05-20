@@ -3,14 +3,14 @@
   "devCommand": "npm run dev",
   "builds": [
     {
-      "src": "api/[...slug].js",
+      "src": "src/server.js",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "api/[...slug].js"
+      "dest": "src/server.js"
     }
   ]
 }

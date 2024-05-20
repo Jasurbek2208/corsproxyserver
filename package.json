@@ -3,12 +3,12 @@
   "version": "1.0.0",
   "description": "CORS Proxy server.",
   "author": "Jasurbek Shomaqsudov",
-  "main": "api/server.js",
+  "main": "src/server.js",
   "private": true,
   "license": "MIT",
   "scripts": {
-    "start": "node api/server.js",
-    "dev": "nodemon api/server.js"
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
   },
   "engines": {
     "node": ">=20",
