@@ -3,11 +3,11 @@
   "version": "1.0.0",
   "description": "CORS Proxy server.",
   "author": "Jasurbek Shomaqsudov",
-  "main": "index.ts",
+  "main": "index.js",
   "private": true,
   "scripts": {
     "build": "tsc",
-    "dev": "bun run index.ts",
+    "dev": "bun run index.js",
     "start": "bun run dist/index.js"
   },
   "engines": {
@@ -25,15 +25,10 @@
     "endOfLine": "auto",
     "bracketSameLine": true
   },
-  "devDependencies": {
-    "@types/bun": "latest",
-    "@types/cors": "^2.8.17",
-    "@types/express": "^4.17.21"
-  },
-  "peerDependencies": {
-    "typescript": "^5.0.0"
-  },
+  "devDependencies": {},
+  "peerDependencies": {},
   "dependencies": {
+    "@vercel/node": "^3.1.5",
     "axios": "^1.7.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
