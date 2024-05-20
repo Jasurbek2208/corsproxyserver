@@ -5,7 +5,6 @@ import cors from 'cors'
 dotenv.config()
 
 const app = express()
-const PORT = 2208
 
 app.use(cors())
 app.use(express.json())
@@ -31,6 +30,4 @@ app.use('/', async (req, res) => {
   }
 })
 
-app.listen(PORT, () => {
-  console.log(`CORS Proxy server running on port ${PORT}`)
-})
+export default app
