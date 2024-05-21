@@ -4,6 +4,7 @@
   "description": "CORS Proxy server.",
   "author": "Jasurbek Shomaqsudov",
   "main": "src/server.js",
+  "type": "module",
   "private": true,
   "license": "MIT",
   "scripts": {
