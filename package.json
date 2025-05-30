@@ -1,19 +1,28 @@
 {
   "name": "corsproxyserver",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "CORS Proxy server.",
-  "author": "Jasurbek Shomaqsudov",
   "main": "src/server.js",
   "type": "module",
   "private": true,
   "license": "MIT",
+  "author": { "name": "Jasurbek Shomaqsudov", "email": "jasurbekshomaqsudov2004@gmail.com", "url": "https://shomaqsudov.uz" },
+  "keywords": ["cors", "corsproxy", "proxy", "proxycors"],
+  "homepage": "https://github.com/Jasurbek2208/corsproxyserver",
+  "bugs": {
+    "url": "https://github.com/Jasurbek2208/corsproxyserver/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jasurbek2208/corsproxyserver.git"
+  },
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js"
   },
   "engines": {
-    "node": ">=20",
-    "npm": ">=9"
+    "node": ">=22",
+    "npm": ">=11"
   },
   "prettier": {
     "singleQuote": true,
@@ -28,14 +37,18 @@
     "bracketSameLine": true
   },
   "devDependencies": {
-    "nodemon": "^3.1.0"
+    "nodemon": "^3.1.10"
   },
-  "peerDependencies": {},
   "dependencies": {
-    "@vercel/node": "^3.1.5",
-    "axios": "^1.7.0",
+    "@vercel/node": "^5.2.0",
+    "axios": "^1.9.0",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
-    "express": "^4.19.2"
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "express-rate-limit": "^7.5.0",
+    "fs": "^0.0.1-security",
+    "https": "^1.0.0",
+    "node-cache": "^5.1.2",
+    "winston": "^3.17.0"
   }
 }

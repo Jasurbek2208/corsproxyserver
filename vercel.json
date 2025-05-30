@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "devCommand": "npm run dev",
   "builds": [
     {
@@ -10,7 +10,32 @@
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "src/server.js"
+      "dest": "src/server.js",
+      "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      "headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Content-Security-Policy": "default-src 'none'; connect-src 'self' https:;",
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "DENY",
+        "X-XSS-Protection": "1; mode=block",
+        "Cache-Control": "public, max-age=10, s-maxage=10"
+      }
     }
-  ]
+  ],
+  "functions": {
+    "src/server.js": {
+      "memory": 4056,
+      "maxDuration": 20
+    }
+  },
+  "env": {
+    "RATE_LIMIT_WINDOW_MS": "60000",
+    "RATE_LIMIT_MAX": "100",
+    "LOG_LEVEL": "error",
+    "LOG_FILE": "proxy.log",
+    "CACHE_TTL": "10"
+  },
+  "cleanUrls": true
 }
