@@ -34,6 +34,8 @@ const app = express();
 // Middleware for JSON & raw body
 app?.use(express.json({ limit: '2mb' }));
 app?.use(express.text({ type: 'text/*', limit: '2mb' }));
+app.use(express.urlencoded({ extended: true }));
+
 
 // Rate limiting
 const limiter = rateLimit({
