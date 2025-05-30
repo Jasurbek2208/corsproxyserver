@@ -3,7 +3,6 @@ import axios from 'axios';
 import rateLimit from 'express-rate-limit';
 import { createLogger, transports, format } from 'winston';
 import https from 'https';
-import fs from 'fs';
 import dotenv from 'dotenv';
 import NodeCache from 'node-cache';
 import http from 'http';
@@ -24,14 +23,7 @@ const config = {
     level: process.env.LOG_LEVEL || 'error',
     file: process.env.LOG_FILE || 'proxy.log',
   },
-  https: {
-    key: process.env.HTTPS_KEY,
-    cert: process.env.HTTPS_CERT,
-  },
 };
-
-// Require HTTPS keys and certificates
-if (!config?.https?.key || !config?.https?.cert) console.error('Warning: server runned without custom certificates!');
 
 // Logger settings
 const logger = createLogger({
@@ -155,17 +147,7 @@ app.all('/', async (req, res) => {
   }
 });
 
-// Start HTTPS server
-const httpsOptions = (!config?.https?.key || config?.https?.cert) ? undefined : {
-  key: fs.readFileSync(config?.https?.key),
-  cert: fs.readFileSync(config?.https?.cert),
-};
-if (httpsOptions) {
-  https.createServer(httpsOptions, app)?.listen(config?.port, () => {
-    console.log(`CORS Proxy server running on port ${config?.port} with HTTPS`);
-  });
-} else {
-  https.createServer(app)?.listen(config?.port, () => {
-    console.log(`CORS Proxy server running on port ${config?.port} with HTTPS`);
-  });
-}
+// Start server
+app?.listen(config?.port, () => {
+  console.log(`CORS Proxy server running on port ${config?.port}`);
+});
