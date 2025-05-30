@@ -2,10 +2,8 @@ import express from 'express';
 import axios from 'axios';
 import rateLimit from 'express-rate-limit';
 import { createLogger, transports, format } from 'winston';
-import https from 'https';
 import dotenv from 'dotenv';
 import NodeCache from 'node-cache';
-import http from 'http';
 
 dotenv.config();
 
@@ -114,8 +112,6 @@ app?.all('/', async (req, res) => {
       data: req?.body,
       responseType: 'arraybuffer', // better for caching
       validateStatus: () => true,
-      httpAgent: new http.Agent({ keepAlive: true, maxSockets: 50 }),
-      httpsAgent: new https.Agent({ keepAlive: true, maxSockets: 50 }),
     });
 
     const { status, headers, data } = axiosResponse;
