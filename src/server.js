@@ -134,7 +134,7 @@ app?.all('/', async (req, res) => {
     res?.status(status).send(data);
   } catch (error) {
     logger.error(`Request error: ${error?.message}`);
-    res?.status(500).send('Error fetching target URL');
+    res?.status(500).send(`Request error: ${error?.message}`);
   }
 });
 
