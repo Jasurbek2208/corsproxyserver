@@ -104,10 +104,11 @@ app?.all('/', async (req, res) => {
   try {
     const axiosResponse = await axios({
       method: req?.method,
-      url: validatedUrl.href,
+      url: validatedUrl?.href,
       headers: {
         ...forwardHeaders,
         'X-Proxy-Source': 'anonymous',
+        host: validatedUrl?.host || '',
       },
       data: req?.body,
       responseType: 'arraybuffer', // better for caching
