@@ -24,12 +24,6 @@
       }
     }
   ],
-  "functions": {
-    "src/server.js": {
-      "memory": 4056,
-      "maxDuration": 20
-    }
-  },
   "env": {
     "RATE_LIMIT_WINDOW_MS": "60000",
     "RATE_LIMIT_MAX": "100",
