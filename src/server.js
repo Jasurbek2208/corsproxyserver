@@ -108,7 +108,13 @@ app?.all('/', async (req, res) => {
       headers: {
         ...forwardHeaders,
         'X-Proxy-Source': 'anonymous',
-        host: validatedUrl?.host || '',
+        'X-Request-URL': 'anonymous',
+        'user-agent': 'anonymous',
+        'X-Forwarded-For': 'anonymous',
+        'X-Real-IP': 'anonymous',
+        'CF-Connecting-IP': 'anonymous',
+        host: validatedUrl?.host || 'anonymous',
+        origin: validatedUrl?.origin || 'anonymous',
       },
       data: req?.body,
       responseType: 'arraybuffer', // better for caching
