@@ -5,6 +5,7 @@ import { createLogger, transports, format } from 'winston'
 import dotenv from 'dotenv'
 import NodeCache from 'node-cache'
 import cors from 'cors'
+import http from 'http'
 
 dotenv.config()
 
@@ -105,6 +106,7 @@ app.all('/', async (req, res) => {
       data: req.body,
       responseType: 'arraybuffer', // supports binary/text/json
       validateStatus: () => true,
+      timeout: 0, // ⬅ infinite timeout for requests
     })
 
     // Forward headers
@@ -127,6 +129,12 @@ app.all('/', async (req, res) => {
   }
 })
 
-app.listen(config.port, () => {
+// Create raw server to disable timeout
+const server = http.createServer(app)
+
+// ⬅ Disable request/response timeout (infinite)
+server.setTimeout(0)
+
+server.listen(config.port, () => {
   console.log(`CORS Proxy server running on port ${config.port}`)
 })
