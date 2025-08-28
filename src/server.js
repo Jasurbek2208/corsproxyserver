@@ -1,5 +1,5 @@
 import express from 'express'
-import axios, { AxiosRequestHeaders } from 'axios'
+import axios from 'axios'
 import rateLimit from 'express-rate-limit'
 import { createLogger, transports, format } from 'winston'
 import dotenv from 'dotenv'
@@ -9,17 +9,15 @@ import http from 'http'
 
 dotenv.config()
 
-// ===================== CACHE =====================
-const cache = new NodeCache({
-  stdTTL: parseInt(process.env.CACHE_TTL || '10'), // default 10s
-})
+// Cache
+const cache = new NodeCache({ stdTTL: parseInt(process.env.CACHE_TTL || '30') })
 
-// ===================== CONFIG =====================
+// Config
 const config = {
   port: process.env.PORT || 2208,
   rateLimit: {
-    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000'), // 1m
-    max: parseInt(process.env.RATE_LIMIT_MAX || '100'), // 100 req/m
+    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000'),
+    max: parseInt(process.env.RATE_LIMIT_MAX || '100'),
   },
   logging: {
     level: process.env.LOG_LEVEL || 'info',
@@ -27,47 +25,41 @@ const config = {
   },
 }
 
-// ===================== LOGGER =====================
+// Logger
 const logger = createLogger({
   level: config.logging.level,
   format: format.combine(format.timestamp(), format.json()),
-  transports: [
-    new transports.File({ filename: config.logging.file }),
-    new transports.Console(),
-  ],
+  transports: [new transports.File({ filename: config.logging.file })],
 })
 
-// ===================== EXPRESS APP =====================
 const app = express()
 
-// Middlewares
-app.use(cors())
+// ✅ CORS – barcha domenlarga ruxsat
+app.use(cors({ origin: '*', methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'], allowedHeaders: ['Content-Type', 'Authorization', 'Accept'] }))
+app.options('*', cors()) // preflight OPTIONS ga javob beradi
+
+// Body parsers
 app.use(express.json({ limit: '5mb' }))
 app.use(express.text({ type: 'text/*', limit: '5mb' }))
-app.use(express.urlencoded({ extended: true, limit: '5mb' }))
+app.use(express.urlencoded({ extended: true }))
 
-// Rate limiting
+// ✅ Rate limiting
 const limiter = rateLimit({
   ...config.rateLimit,
   handler: (_req, res) => res.status(429).send('Too many requests'),
 })
 app.use(limiter)
 
-// Minimal request logging
+// ✅ Logging
 app.use((req, _res, next) => {
-  logger.info({
-    method: req.method,
-    ip: req.ip,
-    url: req.query?.url,
-  })
+  logger.info({ method: req.method, ip: req.ip, url: req.query?.url })
   next()
 })
 
-// ===================== PROXY HANDLER =====================
+// Proxy
 app.all('/', async (req, res) => {
-  const targetUrl = req.query?.url as string
-
-  if (!targetUrl) {
+  const targetUrl = req.query?.url
+  if (!targetUrl || typeof targetUrl !== 'string') {
     return res.status(400).send('Target URL not provided')
   }
 
@@ -78,7 +70,7 @@ app.all('/', async (req, res) => {
     return res.status(400).send('Invalid URL format')
   }
 
-  // Hop-by-hop headers to remove
+  // Hop-by-hop headers
   const hopByHopHeaders = [
     'connection',
     'keep-alive',
@@ -90,11 +82,11 @@ app.all('/', async (req, res) => {
     'upgrade',
   ]
 
-  // Forward headers
-  const forwardHeaders: AxiosRequestHeaders = { ...req.headers } as AxiosRequestHeaders
+  const forwardHeaders = { ...req.headers }
   hopByHopHeaders.forEach((h) => delete forwardHeaders[h.toLowerCase()])
+  delete forwardHeaders['host'] // ⚠ host headerni yubormaymiz
 
-  // Cache check (GET only)
+  // ✅ Cache only for GET
   if (req.method === 'GET') {
     const cached = cache.get<Buffer>(targetUrl)
     if (cached) {
@@ -105,32 +97,27 @@ app.all('/', async (req, res) => {
 
   try {
     const axiosResponse = await axios({
-      method: req.method as any,
+      method: req.method,
       url: validatedUrl.href,
-      headers: {
-        ...forwardHeaders,
-        host: validatedUrl.host,
-      },
+      headers: forwardHeaders,
       data: req.body,
-      responseType: 'arraybuffer', // binary/text/json
+      responseType: 'arraybuffer',
       validateStatus: () => true,
-      timeout: 0, // infinite request timeout
-      maxBodyLength: Infinity,
-      maxContentLength: Infinity,
+      timeout: 0,
     })
 
-    // Forward response headers
+    // Forward headers
     for (const [key, value] of Object.entries(axiosResponse.headers)) {
       if (!hopByHopHeaders.includes(key.toLowerCase())) {
         try {
           res.setHeader(key, value as string)
         } catch {
-          // ignore invalid header values
+          // agar noto‘g‘ri header bo‘lsa, tashlab ketamiz
         }
       }
     }
 
-    // Cache successful GET responses
+    // Cache save
     if (req.method === 'GET' && axiosResponse.status >= 200 && axiosResponse.status < 300) {
       cache.set(targetUrl, axiosResponse.data)
       res.setHeader('X-Proxy-Cache', 'MISS')
@@ -143,10 +130,10 @@ app.all('/', async (req, res) => {
   }
 })
 
-// ===================== RAW SERVER (disable timeout) =====================
+// HTTP server
 const server = http.createServer(app)
-server.setTimeout(0) // infinite socket timeout
+server.setTimeout(0)
 
 server.listen(config.port, () => {
-  console.log(`🚀 CORS Proxy server running on port ${config.port}`)
+  console.log(`✅ CORS Proxy running on port ${config.port}`)
 })
