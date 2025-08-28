@@ -8,7 +8,7 @@
     }
   ],
   "functions": {
-    "src/server.js": {
+    "api/server.js": {
       "maxDuration": 900
     }
   },
