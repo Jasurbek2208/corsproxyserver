@@ -139,6 +139,9 @@ app?.all('/', async (req, res) => {
   }
 });
 
-app?.listen(config?.port, () => {
+const server = app?.listen(config?.port, () => {
   console.log(`CORS Proxy server running on port ${config?.port}`);
 });
+
+server?.timeout = 0;
+server?.headersTimeout = 0;
