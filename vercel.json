@@ -8,7 +8,8 @@
     }
   ],
   "functions": {
-    "api/server.js": {
+    "src/server.js": {
+      "runtime": "@vercel/node",
       "maxDuration": 900
     }
   },
