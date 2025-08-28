@@ -1,76 +1,83 @@
-import express from 'express'
-import axios from 'axios'
-import rateLimit from 'express-rate-limit'
-import { createLogger, transports, format } from 'winston'
-import dotenv from 'dotenv'
-import NodeCache from 'node-cache'
-import cors from 'cors'
-import http from 'http'
+import express from 'express';
+import axios from 'axios';
+import rateLimit from 'express-rate-limit';
+import { createLogger, transports, format } from 'winston';
+import https from 'https';
+import dotenv from 'dotenv';
+import NodeCache from 'node-cache';
+import http from 'http';
 
-dotenv.config()
+dotenv.config();
 
-// Cache
-const cache = new NodeCache({ stdTTL: parseInt(process.env.CACHE_TTL || '30') })
+const cache = new NodeCache({ stdTTL: 10 });
 
-// Config
 const config = {
   port: process.env.PORT || 2208,
   rateLimit: {
-    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000'),
-    max: parseInt(process.env.RATE_LIMIT_MAX || '100'),
+    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 60000,
+    max: parseInt(process.env.RATE_LIMIT_MAX) || 100,
   },
   logging: {
-    level: process.env.LOG_LEVEL || 'info',
+    level: process.env.LOG_LEVEL || 'error',
     file: process.env.LOG_FILE || 'proxy.log',
   },
-}
+};
 
-// Logger
 const logger = createLogger({
-  level: config.logging.level,
+  level: config?.logging.level,
   format: format.combine(format.timestamp(), format.json()),
-  transports: [new transports.File({ filename: config.logging.file })],
-})
+  transports: [new transports.File({ filename: config?.logging.file })],
+});
 
-const app = express()
+const app = express();
 
-// ✅ CORS – barcha domenlarga ruxsat
-app.use(cors({ origin: '*', methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'], allowedHeaders: ['Content-Type', 'Authorization', 'Accept'] }))
-app.options('*', cors()) // preflight OPTIONS ga javob beradi
+// Middleware for JSON & raw body
+app?.use(express.json({ limit: '2mb' }));
+app?.use(express.text({ type: 'text/*', limit: '2mb' }));
+app.use(express.urlencoded({ extended: true }));
 
-// Body parsers
-app.use(express.json({ limit: '5mb' }))
-app.use(express.text({ type: 'text/*', limit: '5mb' }))
-app.use(express.urlencoded({ extended: true }))
 
-// ✅ Rate limiting
+// Rate limiting
 const limiter = rateLimit({
-  ...config.rateLimit,
-  handler: (_req, res) => res.status(429).send('Too many requests'),
-})
-app.use(limiter)
+  ...config?.rateLimit,
+  handler: (_req, res) => res?.status(429).send('Too many requests'),
+});
 
-// ✅ Logging
-app.use((req, _res, next) => {
-  logger.info({ method: req.method, ip: req.ip, url: req.query?.url })
-  next()
-})
+app?.use(limiter);
 
-// Proxy
-app.all('/', async (req, res) => {
-  const targetUrl = req.query?.url
+// CORS
+app?.use((req, res, next) => {
+  res?.setHeader('Access-Control-Allow-Origin', '*');
+  res?.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res?.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req?.method === 'OPTIONS') return res?.sendStatus(200);
+  next();
+});
+
+// Minimal logging
+app?.use((req, _res, next) => {
+  logger.info({
+    method: req?.method,
+    ip: req?.ip,
+    url: req?.query?.url,
+  });
+  next();
+});
+
+app?.all('/', async (req, res) => {
+  const targetUrl = req?.query?.url || '';
+
   if (!targetUrl || typeof targetUrl !== 'string') {
-    return res.status(400).send('Target URL not provided')
+    return res?.status(400).send('Target URL not provided or invalid type');
   }
 
-  let validatedUrl: URL
+  let validatedUrl;
   try {
-    validatedUrl = new URL(targetUrl)
+    validatedUrl = new URL(targetUrl);
   } catch {
-    return res.status(400).send('Invalid URL format')
+    return res?.status(400).send('Invalid URL format');
   }
 
-  // Hop-by-hop headers
   const hopByHopHeaders = [
     'connection',
     'keep-alive',
@@ -80,60 +87,58 @@ app.all('/', async (req, res) => {
     'trailers',
     'transfer-encoding',
     'upgrade',
-  ]
+    'referer',
+    'user-agent',
+  ];
 
-  const forwardHeaders = { ...req.headers }
-  hopByHopHeaders.forEach((h) => delete forwardHeaders[h.toLowerCase()])
-  delete forwardHeaders['host'] // ⚠ host headerni yubormaymiz
+  const forwardHeaders = { ...req?.headers };
+  hopByHopHeaders?.forEach(h => delete forwardHeaders[h]);
 
-  // ✅ Cache only for GET
-  if (req.method === 'GET') {
-    const cached = cache.get<Buffer>(targetUrl)
+  // Check cache (GET only)
+  if (req?.method === 'GET') {
+    const cached = cache?.get(targetUrl);
     if (cached) {
-      res.setHeader('X-Proxy-Cache', 'HIT')
-      return res.end(cached)
+      res?.setHeader('X-Proxy-Cache', 'HIT');
+      return res?.send(cached);
     }
   }
 
   try {
     const axiosResponse = await axios({
-      method: req.method,
+      method: req?.method,
       url: validatedUrl.href,
-      headers: forwardHeaders,
-      data: req.body,
-      responseType: 'arraybuffer',
+      headers: {
+        ...forwardHeaders,
+        'X-Proxy-Source': 'anonymous',
+      },
+      data: req?.body,
+      responseType: 'arraybuffer', // better for caching
       validateStatus: () => true,
       timeout: 0,
-    })
+      httpAgent: new http.Agent({ keepAlive: true, maxSockets: 50, timeout: 0 }),
+      httpsAgent: new https.Agent({ keepAlive: true, maxSockets: 50, timeout: 0 }),
+    });
 
-    // Forward headers
-    for (const [key, value] of Object.entries(axiosResponse.headers)) {
-      if (!hopByHopHeaders.includes(key.toLowerCase())) {
-        try {
-          res.setHeader(key, value as string)
-        } catch {
-          // agar noto‘g‘ri header bo‘lsa, tashlab ketamiz
-        }
-      }
+    const { status, headers, data } = axiosResponse;
+
+    // Forward response headers (filtered)
+    for (const [key, value] of Object.entries(headers)) {
+      if (!hopByHopHeaders?.includes(key.toLowerCase())) res?.setHeader(key, value);
     }
 
-    // Cache save
-    if (req.method === 'GET' && axiosResponse.status >= 200 && axiosResponse.status < 300) {
-      cache.set(targetUrl, axiosResponse.data)
-      res.setHeader('X-Proxy-Cache', 'MISS')
+    // Cache successful GETs
+    if (req?.method === 'GET' && status >= 200 && status < 300) {
+      cache?.set(targetUrl, data);
+      res?.setHeader('X-Proxy-Cache', 'MISS');
     }
 
-    res.status(axiosResponse.status).end(axiosResponse.data)
-  } catch (error: any) {
-    logger.error(`Proxy error: ${error.message}`)
-    res.status(500).send('Error fetching the requested URL')
+    res?.status(status).send(data);
+  } catch (error) {
+    logger.error(`Request error: ${error?.message}`);
+    res?.status(500).send('Error fetching target URL');
   }
-})
+});
 
-// HTTP server
-const server = http.createServer(app)
-server.setTimeout(0)
-
-server.listen(config.port, () => {
-  console.log(`✅ CORS Proxy running on port ${config.port}`)
-})
+app?.listen(config?.port, () => {
+  console.log(`CORS Proxy server running on port ${config?.port}`);
+});
